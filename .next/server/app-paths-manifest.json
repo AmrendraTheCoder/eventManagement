@@ -1,9 +1,24 @@
 {
+  "/_not-found/page": "app/_not-found/page.js",
+  "/(auth)/forgot-password/page": "app/(auth)/forgot-password/page.js",
+  "/api/create-event/route": "app/api/create-event/route.js",
+  "/(auth)/sign-up/page": "app/(auth)/sign-up/page.js",
+  "/api/create-test-participants/route": "app/api/create-test-participants/route.js",
+  "/api/update-user-role/route": "app/api/update-user-role/route.js",
+  "/api/verify-payment/route": "app/api/verify-payment/route.js",
+  "/dashboard/create-event/page": "app/dashboard/create-event/page.js",
+  "/auth/callback/route": "app/auth/callback/route.js",
+  "/api/upload-image/route": "app/api/upload-image/route.js",
+  "/(auth)/sign-in/page": "app/(auth)/sign-in/page.js",
   "/dashboard/manage-events/page": "app/dashboard/manage-events/page.js",
+  "/events/[eventId]/confirmation/page": "app/events/[eventId]/confirmation/page.js",
+  "/dashboard/reset-password/page": "app/dashboard/reset-password/page.js",
   "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/payments/[eventId]/page": "app/dashboard/payments/[eventId]/page.js",
+  "/events/[eventId]/view/page": "app/events/[eventId]/view/page.js",
   "/dashboard/verify-payments/[eventId]/page": "app/dashboard/verify-payments/[eventId]/page.js",
-  "/events/[eventId]/page": "app/events/[eventId]/page.js",
   "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/api/submit-payment/route": "app/api/submit-payment/route.js",
-  "/events/[eventId]/confirmation/page": "app/events/[eventId]/confirmation/page.js"
+  "/events/[eventId]/page": "app/events/[eventId]/page.js",
+  "/page": "app/page.js",
+  "/api/submit-payment/route": "app/api/submit-payment/route.js"
 }

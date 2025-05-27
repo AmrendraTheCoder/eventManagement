@@ -38,7 +38,7 @@ export default function PaymentVerification({
   const [activeTab, setActiveTab] = useState("pending");
   const [verificationNotes, setVerificationNotes] = useState("");
   const [processingPaymentId, setProcessingPaymentId] = useState<string | null>(
-    null,
+    null
   );
   const [message, setMessage] = useState<{
     success?: string;
@@ -51,7 +51,7 @@ export default function PaymentVerification({
 
   const handleVerify = async (
     paymentId: string,
-    status: "verified" | "rejected",
+    status: "verified" | "rejected"
   ) => {
     setProcessingPaymentId(paymentId);
     setMessage(null);
@@ -196,7 +196,10 @@ export default function PaymentVerification({
 
   return (
     <div className="space-y-6">
-      {message && <FormMessage message={message} />}
+      {message?.success && (
+        <FormMessage message={{ success: message.success }} />
+      )}
+      {message?.error && <FormMessage message={{ error: message.error }} />}
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">

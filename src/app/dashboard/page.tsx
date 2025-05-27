@@ -54,7 +54,7 @@ export default async function Dashboard() {
           .select("id", { count: "exact", head: true })
           .eq("status", "pending")
           .in("event_id", eventIds)
-      : { count: 0, error: null };
+      : { count: 0 };
 
   // Fetch verified payments count
   const { count: verifiedPaymentsCount } =
@@ -64,7 +64,7 @@ export default async function Dashboard() {
           .select("id", { count: "exact", head: true })
           .eq("status", "verified")
           .in("event_id", eventIds)
-      : { count: 0, error: null };
+      : { count: 0 };
 
   // Fetch recent events
   const { data: recentEvents } = await supabase
@@ -305,7 +305,7 @@ export default async function Dashboard() {
                           Create New Event
                         </Button>
                       </Link>
-                      {pendingPaymentsCount > 0 && (
+                      {(pendingPaymentsCount ?? 0) > 0 && (
                         <Link href="/dashboard/manage-events" className="block">
                           <Button
                             variant="outline"

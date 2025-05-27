@@ -130,7 +130,7 @@ export default function ShareEventDialog({
                 <span className="text-xs">Email</span>
               </Button>
 
-              {navigator.share && (
+              {typeof navigator.share === "function" && (
                 <Button
                   variant="outline"
                   size="sm"
