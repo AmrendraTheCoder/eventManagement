@@ -1,0 +1,9 @@
+{
+  "/dashboard/manage-events/page": "app/dashboard/manage-events/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/dashboard/verify-payments/[eventId]/page": "app/dashboard/verify-payments/[eventId]/page.js",
+  "/events/[eventId]/page": "app/events/[eventId]/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/api/submit-payment/route": "app/api/submit-payment/route.js",
+  "/events/[eventId]/confirmation/page": "app/events/[eventId]/confirmation/page.js"
+}

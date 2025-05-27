@@ -9,11 +9,12 @@ export function validateUpiTransactionId(transactionId: string): boolean {
   // UPI transaction IDs typically follow patterns like:
   // - 12-digit numeric IDs
   // - Alphanumeric IDs with specific prefixes
-  // This is a simplified validation
+  // - Test transaction IDs for development
   const patterns = [
     /^\d{12}$/, // 12-digit numeric
     /^[A-Za-z0-9]{14,18}$/, // 14-18 character alphanumeric
     /^UPI[A-Za-z0-9]{10,15}$/, // UPI prefix followed by 10-15 alphanumeric
+    /^TEST_\d+_[A-Z0-9]{6}$/, // Test transaction ID format
   ];
 
   return patterns.some((pattern) => pattern.test(transactionId));

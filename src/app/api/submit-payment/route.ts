@@ -2,7 +2,6 @@ import { createClient } from "../../../../supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import {
   validateUpiTransactionId,
-  isDuplicateScreenshot,
   generatePaymentReference,
 } from "@/utils/upi";
 
@@ -25,11 +24,10 @@ export async function POST(request: NextRequest) {
       amount,
       transactionId,
       upiReference,
-      paymentScreenshotUrl,
     } = await request.json();
 
     // Validate required fields
-    if (!eventId || !amount || !paymentScreenshotUrl) {
+    if (!eventId || !amount) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 },
@@ -40,18 +38,6 @@ export async function POST(request: NextRequest) {
     if (transactionId && !validateUpiTransactionId(transactionId)) {
       return NextResponse.json(
         { error: "Invalid transaction ID format" },
-        { status: 400 },
-      );
-    }
-
-    // Check for duplicate screenshot
-    const isDuplicate = await isDuplicateScreenshot(
-      paymentScreenshotUrl,
-      eventId,
-    );
-    if (isDuplicate) {
-      return NextResponse.json(
-        { error: "This payment screenshot has already been used" },
         { status: 400 },
       );
     }
@@ -70,7 +56,6 @@ export async function POST(request: NextRequest) {
         amount,
         transaction_id: transactionId,
         upi_reference: reference,
-        payment_screenshot_url: paymentScreenshotUrl,
         status: "pending",
       })
       .select()

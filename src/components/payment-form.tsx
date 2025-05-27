@@ -7,7 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { FormMessage } from "@/components/form-message";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2, Copy, Check } from "lucide-react";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { useToast } from "@/components/ui/use-toast";
 
 type PricingTier = {
   id: string;
@@ -30,43 +32,110 @@ export default function PaymentForm({
   pricingTiers,
 }: PaymentFormProps) {
   const router = useRouter();
+  const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{
     success?: string;
     error?: string;
   } | null>(null);
   const [selectedTierId, setSelectedTierId] = useState<string | null>(
-    pricingTiers[0]?.id || null,
+    pricingTiers[0]?.id || null
   );
   const [transactionId, setTransactionId] = useState("");
-  const [screenshotUrl, setScreenshotUrl] = useState("");
-  const [isUploading, setIsUploading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  const selectedTier = pricingTiers.find((tier) => tier.id === selectedTierId);
+  const generateTestTransactionId = () => {
+    const timestamp = Date.now();
+    const randomStr = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const testId = `TEST_${timestamp}_${randomStr}`;
+    setTransactionId(testId);
+    setCopied(true);
+    toast({
+      title: "Test Transaction ID Generated",
+      description: "You can use this ID for testing purposes.",
+    });
+    setTimeout(() => setCopied(false), 2000);
+  };
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(transactionId);
+      setCopied(true);
+      toast({
+        title: "Copied!",
+        description: "Transaction ID copied to clipboard.",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch (error) {
+      console.error("Failed to copy:", error);
+      toast({
+        title: "Failed to copy",
+        description: "Please try again or copy manually.",
+        variant: "destructive",
+      });
+    }
+  };
 
-    setIsUploading(true);
+  const createTestParticipant = async () => {
+    if (!selectedTierId) {
+      setMessage({ error: "Please select a pricing tier first" });
+      return;
+    }
+
+    setIsSubmitting(true);
     setMessage(null);
 
     try {
-      // In a real implementation, you would upload to Supabase storage
-      // For this demo, we'll simulate an upload with a timeout
-      // and use a placeholder image URL
+      const selectedTier = pricingTiers.find(
+        (tier) => tier.id === selectedTierId
+      );
+      if (!selectedTier) {
+        throw new Error("Selected pricing tier not found");
+      }
 
-      // Simulating upload delay
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // Generate a new test transaction ID if none exists
+      if (!transactionId) {
+        generateTestTransactionId();
+      }
 
-      // In a real implementation, you would get the URL from the upload response
-      const fakeUploadUrl = `https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800&q=80`;
-      setScreenshotUrl(fakeUploadUrl);
+      const payload = {
+        eventId,
+        pricingTierId: selectedTierId,
+        amount: selectedTier.price,
+        transactionId: transactionId,
+        upiReference: `TEST_REF_${Date.now()}`,
+        status: "pending",
+      };
+
+      console.log("Creating test participant with payload:", payload);
+
+      const response = await fetch("/api/submit-payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        console.error("Error response:", data);
+        throw new Error(data.error || "Failed to create test participant");
+      }
+
+      setMessage({
+        success:
+          "Test participant created successfully! Check the manage events page to see the update.",
+      });
     } catch (error) {
-      console.error("Error uploading file:", error);
-      setMessage({ error: "Failed to upload screenshot. Please try again." });
+      console.error("Error creating test participant:", error);
+      setMessage({
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to create test participant",
+      });
     } finally {
-      setIsUploading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -78,8 +147,8 @@ export default function PaymentForm({
       return;
     }
 
-    if (!screenshotUrl) {
-      setMessage({ error: "Please upload a payment screenshot" });
+    if (!transactionId) {
+      setMessage({ error: "Please enter or generate a transaction ID" });
       return;
     }
 
@@ -87,21 +156,33 @@ export default function PaymentForm({
     setMessage(null);
 
     try {
+      const selectedTier = pricingTiers.find(
+        (tier) => tier.id === selectedTierId
+      );
+      if (!selectedTier) {
+        throw new Error("Selected pricing tier not found");
+      }
+
+      const payload = {
+        eventId,
+        pricingTierId: selectedTierId,
+        amount: selectedTier.price,
+        transactionId: transactionId,
+        status: "pending",
+      };
+
+      console.log("Submitting payment with payload:", payload);
+
       const response = await fetch("/api/submit-payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          eventId,
-          pricingTierId: selectedTierId,
-          amount: selectedTier?.price || 0,
-          transactionId: transactionId || null,
-          paymentScreenshotUrl: screenshotUrl,
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
+        console.error("Error response:", data);
         throw new Error(data.error || "Failed to submit payment");
       }
 
@@ -112,7 +193,6 @@ export default function PaymentForm({
 
       // Reset form
       setTransactionId("");
-      setScreenshotUrl("");
 
       // Redirect to the event page after a short delay
       setTimeout(() => {
@@ -134,145 +214,165 @@ export default function PaymentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8">
-      {message && <FormMessage message={message} />}
+      {message && (
+        <div className="flex flex-col gap-2 w-full text-sm">
+          {message.success && (
+            <div className="text-green-500 border-l-2 px-4 bg-green-50 py-2 rounded">
+              {message.success}
+            </div>
+          )}
+          {message.error && (
+            <div className="text-red-500 border-l-2 px-4 bg-red-50 py-2 rounded">
+              {message.error}
+            </div>
+          )}
+        </div>
+      )}
 
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Select Pricing Tier</h3>
-
-          <div className="grid gap-4 sm:grid-cols-2">
+      <div className="space-y-8">
+        {/* Pricing Tier Section */}
+        <div className="bg-white rounded-lg border p-6 shadow-sm">
+          <h3 className="text-xl font-semibold mb-6">Select Pricing Tier</h3>
+          <RadioGroup
+            value={selectedTierId || ""}
+            onValueChange={setSelectedTierId}
+            className="grid gap-4 sm:grid-cols-2"
+          >
             {pricingTiers.map((tier) => (
               <div
                 key={tier.id}
-                className={`border rounded-lg p-4 cursor-pointer transition-colors ${selectedTierId === tier.id ? "border-blue-500 bg-blue-50" : "hover:border-gray-300"}`}
+                className={`relative border rounded-xl p-6 cursor-pointer transition-all ${
+                  selectedTierId === tier.id
+                    ? "border-blue-500 bg-blue-50 ring-2 ring-blue-200"
+                    : "hover:border-gray-300 hover:shadow-md"
+                }`}
                 onClick={() => setSelectedTierId(tier.id)}
               >
-                <div className="flex justify-between items-center mb-2">
-                  <h4 className="font-medium">{tier.name}</h4>
-                  <span className="font-bold">₹{tier.price}</span>
+                <div className="flex flex-col h-full">
+                  <div className="flex justify-between items-start mb-3">
+                    <h4 className="font-semibold text-lg">{tier.name}</h4>
+                    <span className="font-bold text-blue-600 text-xl">
+                      ₹{tier.price}
+                    </span>
+                  </div>
+                  {tier.description && (
+                    <p className="text-sm text-gray-600 flex-grow">
+                      {tier.description}
+                    </p>
+                  )}
                 </div>
-                {tier.description && (
-                  <p className="text-sm text-gray-600">{tier.description}</p>
-                )}
               </div>
             ))}
-          </div>
+          </RadioGroup>
         </div>
 
-        <div className="space-y-4">
-          <h3 className="text-lg font-medium">Payment Details</h3>
+        {/* Payment Details Section */}
+        <div className="bg-white rounded-lg border p-6 shadow-sm">
+          <h3 className="text-xl font-semibold mb-6">Payment Details</h3>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-8 md:grid-cols-2">
+            {/* UPI Information */}
             <div className="space-y-4">
-              <div className="p-4 border rounded-lg bg-gray-50">
-                <h4 className="font-medium mb-2">UPI Payment Information</h4>
-                <p className="text-sm mb-4">
+              <div className="p-6 border rounded-xl bg-gray-50">
+                <h4 className="font-semibold text-lg mb-3">
+                  UPI Payment Information
+                </h4>
+                <p className="text-sm text-gray-600 mb-6">
                   Scan the QR code or use the UPI ID below to make your payment.
                 </p>
 
                 <div className="flex flex-col items-center">
-                  <div className="bg-white p-2 rounded-lg mb-4">
+                  <div className="bg-white p-3 rounded-xl mb-6 shadow-sm">
                     <Image
                       src={qrCodeUrl}
                       alt="UPI QR Code"
                       width={200}
                       height={200}
-                      className="rounded-md"
+                      className="rounded-lg"
                     />
                   </div>
 
-                  <div className="text-center">
-                    <p className="text-sm font-medium mb-1">UPI ID:</p>
-                    <p className="text-sm bg-white px-3 py-1 rounded border select-all">
+                  <div className="text-center w-full">
+                    <p className="text-sm font-medium mb-2">UPI ID:</p>
+                    <div className="bg-white px-4 py-2 rounded-lg border select-all text-sm font-mono">
                       {upiId}
-                    </p>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <div className="grid gap-2">
-                <Label htmlFor="transactionId">Transaction ID (Optional)</Label>
-                <Input
-                  id="transactionId"
-                  value={transactionId}
-                  onChange={(e) => setTransactionId(e.target.value)}
-                  placeholder="Enter UPI transaction ID"
-                />
-              </div>
-
-              <div className="grid gap-2">
-                <Label htmlFor="screenshot">Payment Screenshot *</Label>
-
-                {screenshotUrl ? (
-                  <div className="relative">
-                    <div className="relative h-48 w-full rounded-md overflow-hidden">
-                      <Image
-                        src={screenshotUrl}
-                        alt="Payment Screenshot"
-                        fill
-                        className="object-cover"
-                      />
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="absolute top-2 right-2"
-                      onClick={() => setScreenshotUrl("")}
-                    >
-                      Change
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-6 bg-gray-50">
-                    {isUploading ? (
-                      <div className="flex flex-col items-center">
-                        <Loader2 className="h-8 w-8 text-blue-500 animate-spin mb-2" />
-                        <p className="text-sm text-gray-500">Uploading...</p>
-                      </div>
+            {/* Transaction Details */}
+            <div className="space-y-6">
+              <div className="space-y-4">
+                <Label htmlFor="transactionId" className="text-base">
+                  Transaction ID *
+                </Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="transactionId"
+                    value={transactionId}
+                    onChange={(e) => setTransactionId(e.target.value)}
+                    placeholder="Enter UPI transaction ID"
+                    className="h-11"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    onClick={copyToClipboard}
+                    disabled={!transactionId}
+                    className="h-11 w-11"
+                  >
+                    {copied ? (
+                      <Check className="h-4 w-4" />
                     ) : (
-                      <>
-                        <Upload className="h-8 w-8 text-gray-400 mb-2" />
-                        <p className="text-sm text-gray-500 mb-2">
-                          Click to upload payment screenshot
-                        </p>
-                        <p className="text-xs text-gray-400">
-                          PNG, JPG up to 5MB
-                        </p>
-                      </>
+                      <Copy className="h-4 w-4" />
                     )}
-                    <input
-                      id="screenshot"
-                      type="file"
-                      accept="image/*"
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      onChange={handleFileUpload}
-                      disabled={isUploading}
-                    />
-                  </div>
-                )}
+                  </Button>
+                </div>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={generateTestTransactionId}
+                  className="w-full"
+                >
+                  Generate Test Transaction ID
+                </Button>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <Button
-        type="submit"
-        className="w-full"
-        disabled={isSubmitting || !selectedTierId || !screenshotUrl}
-      >
-        {isSubmitting ? (
-          <>
-            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-            Submitting Payment...
-          </>
-        ) : (
-          "Submit Payment"
-        )}
-      </Button>
+      <div className="flex gap-4 pt-4">
+        <Button
+          type="submit"
+          className="flex-1 h-12 text-base"
+          disabled={isSubmitting || !selectedTierId || !transactionId}
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Submitting Payment...
+            </>
+          ) : (
+            "Submit Payment"
+          )}
+        </Button>
+
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={createTestParticipant}
+          disabled={isSubmitting || !selectedTierId}
+          className="h-12 text-base"
+        >
+          Create Test Participant
+        </Button>
+      </div>
     </form>
   );
 }

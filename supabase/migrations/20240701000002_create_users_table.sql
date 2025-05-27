@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     email text,
     user_id uuid,
     token_identifier text,
+    role text DEFAULT 'user' CHECK (role IN ('user', 'admin')),
     created_at timestamp with time zone DEFAULT now(),
     updated_at timestamp with time zone DEFAULT now()
 );
